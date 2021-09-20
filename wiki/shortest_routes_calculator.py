@@ -1,4 +1,5 @@
-from typing import Dict, List
+from concurrent.futures.thread import ThreadPoolExecutor
+from typing import Dict, List, Optional
 from PySide6.QtCore import QObject, Signal
 from wikipedia import WikipediaPage, DisambiguationError, PageError
 
@@ -12,6 +13,8 @@ class ShortestRoutesCalculator(QObject):
         self.goal_num: int = 5
         self.limit: int = 6
         self.routes: [[str]] = []
+        self.executor = ThreadPoolExecutor()
+        self.destination: Optional[WikipediaPage] = None
 
     def set_goal_num(self, goal_num: int):
         self.goal_num = goal_num
@@ -20,8 +23,41 @@ class ShortestRoutesCalculator(QObject):
         self.limit = limit
 
     def calculate(self, source: WikipediaPage, destination: WikipediaPage) -> [[str]]:
-        self._populate_routes(source, destination, [source.title])
+        self.destination = destination
+        self._process_route([source.title])
         return self._get_shortest()
+
+    def _process_route(self, route: [str]):
+        length = len(route)
+        assert length > 0
+
+        last_title = route[-1]
+        if last_title == self.destination.title:
+            self._add_route(route)
+            return
+
+        if last_title in self.visited and self.visited[last_title] <= length:
+            return
+        else:
+            self.visited[route[-1]] = length
+
+        if length == self.limit:
+            return
+
+        try:
+            last_page = WikipediaPage(title=last_title)
+        except DisambiguationError:
+            return
+        except PageError:
+            return
+
+        next_routes = [route + [link] for link in last_page.links]
+        for next_route in next_routes:
+            self._process_route(next_route)
+
+    def _add_route(self, route: [str]):
+        self.routes.append(route)
+        self.route_found.emit(route)
 
     def _get_shortest(self) -> [[str]]:
         self.routes.sort(key=len)
@@ -41,32 +77,3 @@ class ShortestRoutesCalculator(QObject):
                     return shortest
 
         return shortest
-
-    def _populate_routes(self, source: WikipediaPage, destination: WikipediaPage, cur_route: [str]):
-        if source == destination:
-            self._add_route(cur_route)
-            return
-
-        cur_length = len(cur_route)
-
-        if cur_length == self.limit:
-            return
-
-        for link_title in source.links:
-            if link_title in self.visited and self.visited[link_title] <= cur_length:
-                break
-            else:
-                self.visited[link_title] = cur_length
-
-            try:
-                link = WikipediaPage(title=link_title)
-            except DisambiguationError:
-                break
-            except PageError:
-                break
-
-            self._populate_routes(link, destination, cur_route + [link_title])
-
-    def _add_route(self, route: [str]):
-        self.routes.append(route)
-        self.route_found.emit(route)
