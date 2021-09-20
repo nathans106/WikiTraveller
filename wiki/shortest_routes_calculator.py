@@ -3,9 +3,11 @@ from typing import Dict, List, Optional
 from PySide6.QtCore import QObject, Signal
 from wikipedia import WikipediaPage, DisambiguationError, PageError
 
+class RouteJob()
 
 class ShortestRoutesCalculator(QObject):
     route_found = Signal(object)
+    page_visited = Signal(str)
 
     def __init__(self):
         QObject.__init__(self)
@@ -15,6 +17,7 @@ class ShortestRoutesCalculator(QObject):
         self.routes: [[str]] = []
         self.executor = None
         self.destination: Optional[WikipediaPage] = None
+        self.percentage_tracker = None
 
     def set_goal_num(self, goal_num: int):
         self.goal_num = goal_num
@@ -35,6 +38,8 @@ class ShortestRoutesCalculator(QObject):
         assert length > 0
 
         last_title = route[-1]
+        self.page_visited.emit(last_title)
+
         if last_title == self.destination.title:
             self._add_route(route)
             return
