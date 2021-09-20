@@ -13,7 +13,7 @@ class ShortestRoutesCalculator(QObject):
         self.goal_num: int = 5
         self.limit: int = 6
         self.routes: [[str]] = []
-        self.executor = ThreadPoolExecutor()
+        self.executor = None
         self.destination: Optional[WikipediaPage] = None
 
     def set_goal_num(self, goal_num: int):
@@ -24,7 +24,10 @@ class ShortestRoutesCalculator(QObject):
 
     def calculate(self, source: WikipediaPage, destination: WikipediaPage) -> [[str]]:
         self.destination = destination
-        self._process_route([source.title])
+
+        with ThreadPoolExecutor() as self.executor:
+            self._process_route([source.title])
+
         return self._get_shortest()
 
     def _process_route(self, route: [str]):
@@ -52,8 +55,7 @@ class ShortestRoutesCalculator(QObject):
             return
 
         next_routes = [route + [link] for link in last_page.links]
-        for next_route in next_routes:
-            self._process_route(next_route)
+        self.executor.map(self._process_route, next_routes)
 
     def _add_route(self, route: [str]):
         self.routes.append(route)
