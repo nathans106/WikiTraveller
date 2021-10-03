@@ -15,10 +15,12 @@
     <ProjectCapability Include="SourceItemsFromImports" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)httpsGet.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)Page.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)ShortestRouteCalculator.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)httpsGet.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Page.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ShortestRouteCalculator.cpp" />
   </ItemGroup>
